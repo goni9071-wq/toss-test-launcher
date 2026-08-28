@@ -35,9 +35,9 @@
   </main>
   <script>
     const params = new URLSearchParams(location.search);
-    const appName = params.get('appName') || '';
-    const deploymentId = params.get('deploymentId') || '';
-    const title = (params.get('title') || '테스트 게임').slice(0, 40);
+    const appName = params.get('appName') || 'throwmatch';
+    const deploymentId = params.get('deploymentId') || '01a04325-16c0-756d-9d2d-ad4592499416';
+    const title = (params.get('title') || '다 던져').slice(0, 40);
     const validAppName = /^[a-z][a-z0-9-]{1,39}$/.test(appName);
     const validDeployment = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId);
     const heading = document.querySelector('#title');

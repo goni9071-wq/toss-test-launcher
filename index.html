@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#3182f6" />
+  <meta property="og:title" content="토스 미니앱 테스트 열기" />
+  <meta property="og:description" content="버튼을 눌러 토스 앱에서 테스트 게임을 실행하세요." />
+  <title>토스 미니앱 테스트 열기</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+    * { box-sizing: border-box; }
+    body { min-height: 100dvh; margin: 0; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); display: grid; place-items: center; color: #191f28; background: #f2f6fb; }
+    main { width: min(100%, 420px); padding: 34px 24px 24px; border-radius: 28px; background: #fff; box-shadow: 0 18px 50px rgba(25,31,40,.12); text-align: center; }
+    .mark { width: 72px; height: 72px; margin: 0 auto 22px; display: grid; place-items: center; border-radius: 24px; color: #fff; background: #3182f6; font-size: 34px; box-shadow: 0 12px 24px rgba(49,130,246,.28); }
+    .eyebrow { margin: 0 0 8px; color: #3182f6; font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+    h1 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
+    .description { margin: 12px 0 28px; color: #6b7684; font-size: 15px; line-height: 1.6; }
+    button, a { width: 100%; min-height: 54px; border-radius: 16px; font: inherit; font-weight: 800; }
+    .open { display: grid; place-items: center; color: #fff; background: #3182f6; text-decoration: none; }
+    button { margin-top: 10px; border: 1px solid #dfe4ea; color: #333d4b; background: #fff; cursor: pointer; }
+    .help { margin: 20px 0 0; padding-top: 18px; border-top: 1px solid #eef1f4; color: #8b95a1; font-size: 12px; line-height: 1.6; }
+    .error { color: #b4232a; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">↗</div>
+    <p class="eyebrow">APPS IN TOSS · PRIVATE TEST</p>
+    <h1 id="title">테스트 게임</h1>
+    <p class="description" id="description">아래 버튼을 누르면 토스 앱에서 최신 테스트 버전이 열립니다.</p>
+    <a class="open" id="open" href="#">토스에서 열기</a>
+    <button id="copy" type="button">테스트 주소 복사</button>
+    <p class="help">카카오톡 안에서 열리지 않으면 우측 상단 메뉴에서 Safari 또는 Chrome으로 연 뒤 다시 버튼을 눌러주세요. 토스 로그인·워크스페이스 멤버·만 19세 이상 조건이 필요합니다.</p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const appName = params.get('appName') || '';
+    const deploymentId = params.get('deploymentId') || '';
+    const title = (params.get('title') || '테스트 게임').slice(0, 40);
+    const validAppName = /^[a-z][a-z0-9-]{1,39}$/.test(appName);
+    const validDeployment = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId);
+    const heading = document.querySelector('#title');
+    const description = document.querySelector('#description');
+    const open = document.querySelector('#open');
+    const copy = document.querySelector('#copy');
+
+    heading.textContent = title;
+    document.title = `${title} · 토스 테스트`;
+
+    if (!validAppName || !validDeployment) {
+      description.textContent = '올바른 테스트 앱 정보가 없는 링크입니다.';
+      description.classList.add('error');
+      open.hidden = true;
+      copy.hidden = true;
+    } else {
+      const scheme = `intoss-private://${appName}?_deploymentId=${deploymentId}`;
+      open.href = scheme;
+      open.textContent = `토스에서 ${title} 열기`;
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(scheme);
+          copy.textContent = '복사했어요';
+        } catch {
+          window.prompt('아래 테스트 주소를 복사하세요.', scheme);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

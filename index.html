@@ -21,6 +21,8 @@
     button { margin-top: 10px; border: 1px solid #dfe4ea; color: #333d4b; background: #fff; cursor: pointer; }
     .help { margin: 20px 0 0; padding-top: 18px; border-top: 1px solid #eef1f4; color: #8b95a1; font-size: 12px; line-height: 1.6; }
     .error { color: #b4232a; }
+    [hidden] { display: none !important; }
+    .version { margin: 0 0 18px; color: #4e5968; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -28,44 +30,77 @@
     <div class="mark" aria-hidden="true">↗</div>
     <p class="eyebrow">APPS IN TOSS · PRIVATE TEST</p>
     <h1 id="title">테스트 게임</h1>
-    <p class="description" id="description">아래 버튼을 누르면 토스 앱에서 최신 테스트 버전이 열립니다.</p>
-    <a class="open" id="open" href="#">토스에서 열기</a>
-    <button id="copy" type="button">테스트 주소 복사</button>
+    <p class="description" id="description" role="status">최신 테스트 버전을 확인하고 있어요.</p>
+    <p class="version" id="version"></p>
+    <a class="open" id="open" hidden>토스에서 열기</a>
+    <button id="copy" type="button" hidden>테스트 주소 복사</button>
     <p class="help">카카오톡 안에서 열리지 않으면 우측 상단 메뉴에서 Safari 또는 Chrome으로 연 뒤 다시 버튼을 눌러주세요. 토스 로그인·워크스페이스 멤버·만 19세 이상 조건이 필요합니다.</p>
   </main>
   <script>
     const params = new URLSearchParams(location.search);
-    const appName = params.get('appName') || 'throwmatch';
-    const deploymentId = params.get('deploymentId') || '01a04325-16c0-756d-9d2d-ad4592499416';
-    const title = (params.get('title') || '다 던져').slice(0, 40);
-    const validAppName = /^[a-z][a-z0-9-]{1,39}$/.test(appName);
-    const validDeployment = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId);
     const heading = document.querySelector('#title');
     const description = document.querySelector('#description');
     const open = document.querySelector('#open');
     const copy = document.querySelector('#copy');
+    const version = document.querySelector('#version');
+    let scheme = '';
+    let refreshing = false;
 
-    heading.textContent = title;
-    document.title = `${title} · 토스 테스트`;
-
-    if (!validAppName || !validDeployment) {
-      description.textContent = '올바른 테스트 앱 정보가 없는 링크입니다.';
-      description.classList.add('error');
+    async function refresh() {
+      if (refreshing) return;
+      refreshing = true;
       open.hidden = true;
       copy.hidden = true;
-    } else {
-      const scheme = `intoss-private://${appName}?_deploymentId=${deploymentId}`;
-      open.href = scheme;
-      open.textContent = `토스에서 ${title} 열기`;
-      copy.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(scheme);
-          copy.textContent = '복사했어요';
-        } catch {
-          window.prompt('아래 테스트 주소를 복사하세요.', scheme);
+      open.removeAttribute('href');
+      scheme = '';
+      description.classList.remove('error');
+      description.textContent = '최신 테스트 버전을 확인하고 있어요.';
+      version.textContent = '';
+      try {
+        const pinned = params.has('deploymentId');
+        let latest;
+        if (!pinned) {
+          const url = new URL('latest.json', location.href);
+          url.searchParams.set('t', Date.now());
+          const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+          if (!response.ok) throw new Error('version unavailable');
+          latest = await response.json();
+          if (latest.schemaVersion !== 1 || typeof latest.versionName !== 'string' || !latest.versionName) throw new Error('invalid version');
+          if (params.has('appName') && params.get('appName') !== latest.appName) throw new Error('app mismatch');
         }
-      });
+        const appName = pinned ? (params.get('appName') || 'throwmatch') : latest.appName;
+        const deploymentId = pinned ? params.get('deploymentId') : latest.deploymentId;
+        const title = String(params.get('title') || latest?.title || '다 던져').slice(0, 40);
+        if (!/^[a-z][a-z0-9-]{1,39}$/.test(appName) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId)) throw new Error('invalid link');
+        scheme = `intoss-private://${appName}?_deploymentId=${deploymentId}`;
+        heading.textContent = title;
+        document.title = `${title} · 토스 테스트`;
+        description.textContent = '아래 버튼을 누르면 토스 앱에서 테스트 게임이 열립니다.';
+        version.textContent = pinned ? `지정 버전 · ${deploymentId.slice(0, 8)}` : `최신 테스트 · ${latest.versionName}`;
+        open.href = scheme;
+        open.textContent = `토스에서 ${title} 열기`;
+        copy.textContent = '테스트 주소 복사';
+        open.hidden = false;
+        copy.hidden = false;
+      } catch {
+        description.textContent = '테스트 버전을 확인하지 못했어요. 링크와 인터넷 연결을 확인한 뒤 새로고침해 주세요.';
+        description.classList.add('error');
+      } finally {
+        refreshing = false;
+      }
     }
+    copy.addEventListener('click', async () => {
+      if (!scheme) return;
+      try {
+        await navigator.clipboard.writeText(scheme);
+        copy.textContent = '복사했어요';
+      } catch {
+        window.prompt('아래 테스트 주소를 복사하세요.', scheme);
+      }
+    });
+    window.addEventListener('pageshow', (event) => { if (event.persisted) void refresh(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void refresh(); });
+    void refresh();
   </script>
 </body>
 </html>

@@ -3,5 +3,9 @@
   "appName": "seventh-dawn",
   "title": "낮에는F급밤에는S급",
   "versionName": "20260915-1",
-  "deploymentId": "01a0a2e9-d8eb-7ed0-99ac-9a9ef348c092"
+  "deploymentId": "01a0a2e9-d8eb-7ed0-99ac-9a9ef348c092",
+  "webTarget": {
+    "url": "https://cva.kr/mud/",
+    "label": "MUD 웹 · 서버 저장"
+  }
 }

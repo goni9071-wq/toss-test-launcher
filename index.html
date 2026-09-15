@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#3182f6" />
-  <meta property="og:title" content="토스 미니앱 테스트 열기" />
-  <meta property="og:description" content="버튼을 눌러 토스 앱에서 테스트 게임을 실행하세요." />
-  <title>토스 미니앱 테스트 열기</title>
+  <meta name="theme-color" content="#f4f0e7" />
+  <meta property="og:title" content="낮에는F급밤에는S급 · MUD 웹게임" />
+  <meta property="og:description" content="브라우저에서 자유롭게 탐험하는 비공개 MUD 테스트. 별도로 받은 게임 계정으로 접속하세요." />
+  <title>낮에는F급밤에는S급 · MUD 웹게임</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
     * { box-sizing: border-box; }
@@ -23,18 +23,28 @@
     .error { color: #b4232a; }
     [hidden] { display: none !important; }
     .version { margin: 0 0 18px; color: #4e5968; font-size: 13px; }
+    body { background: #f4f0e7; color: #282c28; }
+    main { background: transparent; box-shadow: none; border-radius: 0; padding: 28px 6px; text-align: left; }
+    .mark { display: none; }
+    .eyebrow { color: #3a6456; font-size: 12px; letter-spacing: .12em; margin-bottom: 18px; }
+    h1 { font-family: "AppleMyungjo", "Noto Serif KR", serif; line-height: 1.5; word-break: keep-all; }
+    .open { background: #3a6456; border-radius: 4px; }
+    button { border-color: #b8b7aa; border-radius: 4px; background: transparent; }
+    .help { color: #63665e; border-color: #b8b7aa; font-size: 13px; }
+    .legacy { display: flex; align-items: center; margin-top: 20px; font-weight: 400; color: #63665e; font-size: 13px; text-underline-offset: 4px; }
   </style>
 </head>
 <body>
   <main>
     <div class="mark" aria-hidden="true">↗</div>
-    <p class="eyebrow">APPS IN TOSS · PRIVATE TEST</p>
+    <p class="eyebrow" id="eyebrow">SEVENTH DAWN · PRIVATE TEST</p>
     <h1 id="title">테스트 게임</h1>
     <p class="description" id="description" role="status">최신 테스트 버전을 확인하고 있어요.</p>
     <p class="version" id="version"></p>
     <a class="open" id="open" hidden>토스에서 열기</a>
     <button id="copy" type="button" hidden>테스트 주소 복사</button>
-    <p class="help">카카오톡 안에서 열리지 않으면 우측 상단 메뉴에서 Safari 또는 Chrome으로 연 뒤 다시 버튼을 눌러주세요. 토스 로그인·워크스페이스 멤버·만 19세 이상 조건이 필요합니다.</p>
+    <p class="help" id="help">접속 방법을 확인하고 있어요.</p>
+    <a class="legacy" id="legacy" hidden>이전 토스 이야기판 열기</a>
   </main>
   <script>
     const params = new URLSearchParams(location.search);
@@ -43,6 +53,8 @@
     const open = document.querySelector('#open');
     const copy = document.querySelector('#copy');
     const version = document.querySelector('#version');
+    const legacy = document.querySelector('#legacy');
+    const help = document.querySelector('#help');
     let scheme = '';
     let refreshing = false;
 
@@ -51,6 +63,8 @@
       refreshing = true;
       open.hidden = true;
       copy.hidden = true;
+      legacy.hidden = true;
+      legacy.removeAttribute('href');
       open.removeAttribute('href');
       scheme = '';
       description.classList.remove('error');
@@ -78,10 +92,33 @@
         const deploymentId = pinned ? params.get('deploymentId') : latest.deploymentId;
         const title = String(params.get('title') || latest?.title || '다 던져').slice(0, 40);
         if (typeof appName !== 'string' || typeof deploymentId !== 'string' || !/^[a-z][a-z0-9-]{1,39}$/.test(appName) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deploymentId)) throw new Error('invalid link');
+        if (!pinned && latest.webTarget !== undefined) {
+          const target = latest.webTarget;
+          if (!target || target.url !== 'https://cva.kr/mud/' || typeof target.label !== 'string' || !target.label.trim() || target.label.length > 80) throw new Error('invalid web target');
+          scheme = target.url;
+          heading.textContent = title;
+          document.title = `${title} · MUD 웹게임`;
+          document.querySelector('#eyebrow').textContent = 'SEVENTH DAWN · MUD WEB TEST';
+          description.textContent = '동서남북, 위아래로 길을 고르는 텍스트 세계. 브라우저에서 바로 시작하세요.';
+          version.textContent = target.label;
+          open.href = scheme;
+          open.textContent = 'MUD 웹게임 시작';
+          copy.textContent = '웹게임 주소 복사';
+          help.textContent = '별도로 받은 게임 계정으로 로그인하세요. 토스 앱이나 QR은 필요하지 않습니다. 카카오톡에서 화면이 열리지 않으면 Chrome 또는 Safari로 열어주세요.';
+          const comparison = new URL(location.pathname, location.origin);
+          comparison.search = new URLSearchParams({ appName, deploymentId, title }).toString();
+          legacy.href = comparison.href;
+          legacy.hidden = false;
+          open.hidden = false;
+          copy.hidden = false;
+          return;
+        }
         scheme = `intoss-private://${appName}?_deploymentId=${deploymentId}`;
         heading.textContent = title;
         document.title = `${title} · 토스 테스트`;
         description.textContent = '아래 버튼을 누르면 토스 앱에서 테스트 게임이 열립니다.';
+        document.querySelector('#eyebrow').textContent = 'APPS IN TOSS · PRIVATE TEST';
+        help.textContent = '카카오톡에서 열리지 않으면 Safari 또는 Chrome으로 연 뒤 다시 눌러주세요. 토스 로그인·워크스페이스 멤버·만 19세 이상 조건이 필요합니다. 현재 MUD 웹판과는 다른 이야기판입니다.';
         version.textContent = pinned ? `지정 버전 · ${deploymentId.slice(0, 8)}` : `최신 테스트 · ${latest.versionName}`;
         open.href = scheme;
         open.textContent = `토스에서 ${title} 열기`;
